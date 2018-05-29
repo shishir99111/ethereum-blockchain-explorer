@@ -1,14 +1,14 @@
 const { getBalance } = require('../../../helpers');
+const Boom = require('boom');
 
 async function logic(request, response) {
-  let balance
+  let balance;
   try {
-    balance = await getBalance(postgres, request.params['address'])
+    balance = await getBalance(request.params['address']);
   } catch (err) {
-    response.send({ result: 'failure', msg: 'error getting balance: ' + err })
-    return
+    throw Boom.badRequest(err);
   }
-  response.send({ result: 'success', balance })
+  response.send({ result: 'success', balance });
 }
 
 function handler(req, res, next) {
