@@ -1,16 +1,15 @@
 const express = require('express');
-const app = express();
 const path = require('path');
+
+const app = express();
 
 require('dotenv').config({ path: path.join(__dirname, '/.env') });
 
-const etherscan = require('etherscan-api').init(process.env.API_KEY)
+const { pool } = require('./db').pg;
 
-const { Client } = require('pg')
-const postgres = new Client()
-postgres.connect().catch((error) => { console.log('connecting to postgres: ' + error) })
+pool.connect();
 
 // mounting routes
 require('./router')(app);
 
-app.listen(3000, () => console.log('listening on port 3000'))
+app.listen(3000, () => console.log('listening on port 3000'));
