@@ -1,14 +1,14 @@
 const { getTransactions } = require('../../../helpers');
+const Boom = require('boom');
 
 async function logic(request, response) {
-  let transactions
+  let transactions;
   try {
-    transactions = await getTransactions(postgres, request.params['address'], request.query.other_address)
+    transactions = await getTransactions(request.params['address'], request.query.other_address)
   } catch (err) {
-    response.send({ result: 'failure', msg: 'error getting transactions: ' + err })
-    return
+    throw Boom.badRequest(err);
   }
-  response.send({ result: 'success', transactions })
+  response.send({ result: 'success', transactions });
 }
 
 function handler(req, res, next) {
