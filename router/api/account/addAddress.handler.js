@@ -1,16 +1,17 @@
 const { addAddress } = require('../../../helpers');
+const Boom = require('boom');
 
-async function logic(request, response) {
+async function logic(req, res) {
   try {
-    await addAddress(postgres, etherscan, request.params['address'])
+    await addAddress(req.params['address']);
   } catch (err) {
-    return response.send({ result: 'failure', msg: 'error adding address: ' + err })
+    throw Boom.badRequest(err);
   }
-  response.send({ result: 'success' })
+  res.send({ result: 'success' });
 }
 
 function handler(req, res, next) {
-  logic(req).then((data) => {
+  logic(req, res).then((data) => {
     res.json(data);
   }).catch(err => next(err));
 }
