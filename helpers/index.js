@@ -2,6 +2,25 @@ let etherscan;
 const etherscanLib = require('etherscan-api');
 const Boom = require('boom');
 
+function transactionObjFormat(t) {
+  return {
+    to_address: t.to,
+    txn_id: t.hash,
+    from_address: t.from,
+    value: (t.value / 10000000000000000).toFixed(4),
+    gas_price: +t.gasPrice,
+    gas_used: +t.gasUsed,
+    cumulative_gas_used: +t.cumulativeGasUsed,
+    block_hash: t.blockHash,
+    block_number: +t.blockNumber,
+    confirmations: +t.confirmations,
+    is_error: t.isError === '0' ? false : true,
+    nonce: t.nonce,
+    created_at: t.timeStamp,
+    txreceipt_status: t.txreceipt_status,
+  };
+}
+
 function getEtherscanClient() {
   if (etherscan) return etherscan;
   etherscan = etherscanLib.init(process.env.API_KEY);
@@ -58,18 +77,9 @@ async function addAddress(address) {
   } catch (err) { throw new Error(`error getting transactions: ${err}`); }
 
   try {
-    const _promises = [];
-    for (let i = 0; i < txlist.result.length; i++) {
-      _promises.push(pg.query(
-        'INSERT INTO transactions(to_address, txn_id, from_address, value)' +
-        ' VALUES(LOWER($1), LOWER($2), LOWER($3), $4)', [txlist.result[i].to,
-          txlist.result[i].hash,
-          txlist.result[i].from,
-          (txlist.result[i].value / 10000000000000000).toFixed(4),
-        ]));
-    }
+    const finalArr = txlist.result.map(transactionObjFormat);
 
-    await Promise.all(_promises);
+    await pg.bulkInsert({ tableName: 'transactions', data: finalArr, returnClause: ['*'] });
   } catch (err) { throw Boom.badRequest(err); }
 }
 
