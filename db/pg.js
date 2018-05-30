@@ -63,9 +63,53 @@ function pgDelete({ client, tableName, whereClause, returnClause }) {
   return query(text, whereClause.values);
 }
 
+function getCommaSeparatedColumns(obj) {
+  return Object.keys(obj).join(',');
+}
+
+function getObjectValues(obj) {
+  return Object.keys(obj).map((key) => obj[key]);
+}
+
+function getCommaSeparatedParamSubtitute(obj, counter) {
+  let _counter = counter || 1;
+  const params = [];
+  Object.keys(obj).forEach(() => {
+    params.push(`$${_counter}`);
+    _counter += 1;
+  }, this);
+  return params.join(',');
+}
+
+function bulkInsert({ tableName, data, returnClause, constraint }) {
+  if (data.constructor !== Array && data.length === 0) {
+    throw Boom.badRequest('Please provide array of values for bulk insert operation');
+  }
+  let text = `INSERT INTO ${tableName}(${getCommaSeparatedColumns(data[0])}) VALUES`;
+  const values = [];
+  const paramsClause = data.map((element, index) => {
+    const size = ((Object.keys(element).length) * index) + 1;
+    Array.prototype.push.apply(values, getObjectValues(element));
+    return `(${getCommaSeparatedParamSubtitute(element, size)})`;
+  }).join(', ');
+  text = `${text} ${paramsClause}`;
+
+  /** If need to handle cases when the constraint fails for some and other entries should be committed to database */
+  if (constraint) {
+    text = `${text} ON CONFLICT ON CONSTRAINT ${constraint} DO NOTHING`;
+  }
+
+  if (returnClause && returnClause.constructor === Array && returnClause.length > 0) {
+    text = `${text} RETURNING ${returnClause.join(',')}`;
+  }
+  /** If client is not provide then use client from connection pool */
+  return query(text, values);
+}
+
 module.exports = {
   pool,
   query,
   getClient,
   pgDelete,
+  bulkInsert,
 };
